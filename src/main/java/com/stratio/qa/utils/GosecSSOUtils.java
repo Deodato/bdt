@@ -47,7 +47,7 @@ public class GosecSSOUtils {
 
     private String passWord = System.getProperty("passWord", "1234");
 
-    private String jsessionIdCookie = "";
+    private String jsessionIdCookie;
 
     private String lt;
 
@@ -55,75 +55,9 @@ public class GosecSSOUtils {
 
     private String tgcCookie;
 
-    private String protocol = "https://";
-
-    private String ssoBaseUrl;
+    private final String PROTOCOL = "https://";
 
     private static SSLSocketFactory sslSocketFactory = null;
-
-    public String getPassWord() {
-        return passWord;
-    }
-
-    public String getSsoHost() {
-        return ssoHost;
-    }
-
-    public String getManagementHost() {
-        return managementHost;
-    }
-
-    public String getSsoPort() {
-        return ssoPort;
-    }
-
-    public String getManagementPort() {
-        return managementPort;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public String getJsessionIdCookie() {
-        return jsessionIdCookie;
-    }
-
-    public void setJsessionIdCookie(String jsessionIdCookie) {
-        this.jsessionIdCookie = jsessionIdCookie;
-    }
-
-    public String getLt() {
-        return lt;
-    }
-
-    public void setLt(String lt) {
-        this.lt = lt;
-    }
-
-    public String getExecution() {
-        return execution;
-    }
-
-    public void setExecution(String execution) {
-        this.execution = execution;
-    }
-
-    public String getTgcCookie() {
-        return tgcCookie;
-    }
-
-    public void setTgcCookie(String tgcCookie) {
-        this.tgcCookie = tgcCookie;
-    }
-
-    public String getSsoBaseUrl() {
-        return ssoBaseUrl;
-    }
-
-    public void setSsoBaseUrl(String ssoBaseUrl) {
-        this.ssoBaseUrl = ssoBaseUrl;
-    }
 
 
     public GosecSSOUtils(String ssoHost, String managementHost, String userName, String passWord) {
@@ -134,27 +68,45 @@ public class GosecSSOUtils {
 
     }
 
+    public GosecSSOUtils() {
+        ssoHost = System.getProperty("SSO_HOST", "gosec2.node.paas.labs");
+        ssoPort = System.getProperty("SSO_PORT", "9005");
+        managementHost = System.getProperty("MANAGEMENT_HOST", "gosec3.node.paas.labs");
+        managementPort = System.getProperty("MANAGEMENT_PORT", "8443");
+        userName = System.getProperty("userName", "admin");
+        passWord = System.getProperty("passWord", "1234");
+        jsessionIdCookie = "";
+        lt = "";
+        execution = "";
+        tgcCookie = "";
+    }
+
     public String generateGosecToken() throws Exception {
-        String managementBaseUrl = protocol + getManagementHost() + ".stratio.com:" + getManagementPort() + "/api/scope";
-        logger.debug("1. GO TO :" + managementBaseUrl);
+        String managementBaseUrl = PROTOCOL + managementHost + ".stratio.com:" + managementPort + "/api/scope";
+        String ssoBase = PROTOCOL + ssoHost + ".stratio.com:" + ssoPort;
+        String ssoBaseURL = ssoBase + "/gosec-sso/login?service=" + ssoBase + "/gosec-sso/oauth2.0/callbackAuthorize";
+        logger.debug("1. Go to :" + managementBaseUrl);
         String response1_1 = sendGetRequest(managementBaseUrl, false, null, false);
-        logger.debug("2. REDIRECT TO : " + response1_1);
+        logger.debug("2. Redirect to : " + response1_1);
         String response1_2 = sendGetRequest(response1_1, true, null, false);
-        logger.debug("3. REDIRECT TO : " + response1_2 + "with" + getJsessionIdCookie());
-        sendGetRequest(response1_2, false, getJsessionIdCookie(), false);
-        logger.debug("4. GO TO: " + getSsoBaseUrl() + "with JSESSIONID: " + getJsessionIdCookie());
-        String location22 = sendPOST(getSsoBaseUrl());
-        logger.debug("5. REDIRECT TO : " + location22 + "WITH JSESSIONID [" + getJsessionIdCookie() + ",CASPRIVACY AND TGC" +
-                " COOKIES" + getCookieWithCasPrivacy() + "]");
+        logger.debug("3. Redirect to : " + response1_2 + "with" + jsessionIdCookie);
+        sendGetRequest(response1_2, false, jsessionIdCookie, false);
+
+        logger.debug("4. Go to: " + ssoBaseURL + "with JSESSIONID: " + jsessionIdCookie);
+
+        String location22 = sendPOST(ssoBaseURL);
+        logger.debug("5. Redirect to : " + location22 + "with JSESSIONID [" + jsessionIdCookie + ",CASPRIVACY and TGC_Cookies" + getCookieWithCasPrivacy() + "]");
+
         String location23 = sendGetRequest(location22, false, null, false);
-        logger.debug("6. REDIRECT TO : " + location23 + "WITH JSESSIONID [" + getJsessionIdCookie() + ",CASPRIVACY AND TGC" +
-                " COOKIES" + getCookieWithCasPrivacy() + "]");
+        logger.debug("6. Redirect to : " + location23 + "with JSESSIONID [" + jsessionIdCookie + ",CASPRIVACY and TGC_Cookies" + getCookieWithCasPrivacy() + "]");
+
         String tokenCookie = sendGetRequest(location23, false, null, true);
         return tokenGenerated(tokenCookie);
     }
 
 
-    private String sendGetRequest(String url, Boolean isCookieNeeded, String token, Boolean returnToken) throws Exception {
+    public String sendGetRequest(String url, Boolean isCookieNeeded, String token, Boolean returnToken) throws
+            Exception {
         String callBackLocation = "";
         String casprivacyAndTgc = getCookieWithCasPrivacy();
         Boolean isCasprivacyReady = !casprivacyAndTgc.contains(";;");
@@ -176,7 +128,8 @@ public class GosecSSOUtils {
 
         logger.info("GET Response Code :: " + responseCode);
         if (isCookieNeeded) {
-            setJsessionIdCookie(cookieSession.substring(0, cookieSession.indexOf(";")));
+            jsessionIdCookie = cookieSession.substring(0, cookieSession.indexOf(";"));
+
         }
 
         if (response.getResponseCode() == HttpURLConnection.HTTP_OK) { // success
@@ -189,23 +142,22 @@ public class GosecSSOUtils {
                 responseBody.append(inputLine);
             }
             in.close();
-            setLt(getHiddenInput(responseBody.toString(), "lt"));
-            setExecution(getHiddenInput(responseBody.toString(), "execution"));
-            setSsoBaseUrl(protocol + getSsoHost() + ".stratio.com:" + getSsoPort() + "/gosec-sso/login?service=" +
-                    protocol + getSsoHost() + ".stratio.com:" + getSsoPort() + "/gosec-sso/oauth2.0/callbackAuthorize");
+            lt = getHiddenInput(responseBody.toString(), "lt");
+            execution = getHiddenInput(responseBody.toString(), "execution");
         }
         callBackLocation = returnToken ? cookieSession : callBackLocation;
         return callBackLocation;
     }
 
-    private String sendPOST(String url) throws Exception {
+    public String sendPOST(String url) throws Exception {
         Map<String, String> params = new LinkedHashMap<>();
-        params.put("lt", getLt());
+        params.put("lt", lt);
         params.put("_eventId", "submit");
-        params.put("execution", getExecution());
+        params.put("execution", execution);
         params.put("submit", "LOGIN");
-        params.put("username", getUserName());
-        params.put("password", getPassWord());
+        params.put("username", userName);
+        params.put("password", passWord);
+
 
         StringBuilder postData = new StringBuilder();
         for (Map.Entry<String, String> param : params.entrySet()) {
@@ -236,7 +188,7 @@ public class GosecSSOUtils {
         int responseCode4 = response.getResponseCode();
 
         String casprivacy = response.getHeaderField("Set-Cookie");
-        setTgcCookie(casprivacy.substring(0, casprivacy.indexOf(";")));
+        tgcCookie = casprivacy.substring(0, casprivacy.indexOf(";"));
         String location = response.getHeaderField("Location");
         logger.info("POST response Code: " + responseCode4);
         if (responseCode4 == HttpURLConnection.HTTP_OK) { // success
@@ -263,7 +215,7 @@ public class GosecSSOUtils {
      * @param attribute
      * @return hiddenInputValue
      */
-    private String getHiddenInput(String responseBody, String attribute) {
+    public String getHiddenInput(String responseBody, String attribute) {
         String hiddenInputValue = "";
         String nameAux = "";
         String nameLEftMAtch = "name=\"" + attribute + "\" value=\"";
@@ -277,11 +229,12 @@ public class GosecSSOUtils {
         return hiddenInputValue;
     }
 
-    private String getCookieWithCasPrivacy() {
-        return "CASPRIVACY=\"\"" + ";" + getTgcCookie() + ";" + getJsessionIdCookie();
+    public String getCookieWithCasPrivacy() {
+        return "CASPRIVACY=\"\"" + ";" + tgcCookie + ";" + jsessionIdCookie;
+
     }
 
-    private String tokenGenerated(String userToken) {
+    public String tokenGenerated(String userToken) {
         String generatedToken = userToken.substring(userToken.indexOf("=") + 1, userToken.indexOf(";"));
         logger.info("Token generated is : [" + userToken + "]");
         return generatedToken;

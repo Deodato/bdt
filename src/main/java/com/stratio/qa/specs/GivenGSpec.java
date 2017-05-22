@@ -581,7 +581,7 @@ public class GivenGSpec extends BaseGSpec {
      * @param passWord
      * @throws Exception
      */
-    @Given("^I log in to sso '(.+?)' to mngt '(.+?)'  with user '(.+?)' and password '(.+?)'$")
+    @Given("^I log in to sso '(.+?)' to management '(.+?)'  with user '(.+?)' and password '(.+?)'$")
     public void setGoSecSSOCookie(String ssoHost, String mngtHost, String userName, String passWord) throws Exception {
         String gosecToken = new GosecSSOUtils(ssoHost, mngtHost, userName, passWord).generateGosecToken();
 
