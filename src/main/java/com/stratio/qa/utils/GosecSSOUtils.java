@@ -16,11 +16,9 @@
 
 package com.stratio.qa.utils;
 
+import java.io.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -59,7 +57,6 @@ public class GosecSSOUtils {
 
     private static SSLSocketFactory sslSocketFactory = null;
 
-
     public GosecSSOUtils(String ssoHost, String managementHost, String userName, String passWord) {
         this.ssoHost = ssoHost;
         this.managementHost = managementHost;
@@ -82,35 +79,41 @@ public class GosecSSOUtils {
     }
 
     public String generateGosecToken() throws Exception {
-        String managementBaseUrl = PROTOCOL + managementHost + ".stratio.com:" + managementPort + "/api/scope";
-        String ssoBase = PROTOCOL + ssoHost + ".stratio.com:" + ssoPort;
-        String ssoBaseURL = ssoBase + "/gosec-sso/login?service=" + ssoBase + "/gosec-sso/oauth2.0/callbackAuthorize";
-        logger.debug("1. Go to :" + managementBaseUrl);
-        String response1_1 = sendGetRequest(managementBaseUrl, false, null, false);
+
+        logger.debug("1. Go to :" + getManagementBaseurl());
+        String response1_1 = sendGetRequest(getManagementBaseurl(), false, null, false);
         logger.debug("2. Redirect to : " + response1_1);
         String response1_2 = sendGetRequest(response1_1, true, null, false);
         logger.debug("3. Redirect to : " + response1_2 + "with" + jsessionIdCookie);
         sendGetRequest(response1_2, false, jsessionIdCookie, false);
 
-        logger.debug("4. Go to: " + ssoBaseURL + "with JSESSIONID: " + jsessionIdCookie);
+        logger.debug("4. Go to: " + getSSOBaseurl() + " with JSESSIONID: " + jsessionIdCookie);
 
-        String location22 = sendPOST(ssoBaseURL);
-        logger.debug("5. Redirect to : " + location22 + "with JSESSIONID [" + jsessionIdCookie + ",CASPRIVACY and TGC_Cookies" + getCookieWithCasPrivacy() + "]");
+        String location22 = sendPOST(getSSOBaseurl());
+        logger.debug("5. Redirect to : " + location22 + " with JSESSIONID [" + jsessionIdCookie + ",CASPRIVACY and TGC_Cookies" + getCookieWithCasPrivacy() + "]");
 
         String location23 = sendGetRequest(location22, false, null, false);
-        logger.debug("6. Redirect to : " + location23 + "with JSESSIONID [" + jsessionIdCookie + ",CASPRIVACY and TGC_Cookies" + getCookieWithCasPrivacy() + "]");
+        logger.debug("6. Redirect to : " + location23 + " with JSESSIONID [" + jsessionIdCookie + ",CASPRIVACY and TGC_Cookies" + getCookieWithCasPrivacy() + "]");
 
-        String tokenCookie = sendGetRequest(location23, false, null, true);
-        return tokenGenerated(tokenCookie);
+        return tokenGenerated(sendGetRequest(location23, false, null, true));
+    }
+
+    public String getSSOBaseurl() {
+        String ssoBase = PROTOCOL + ssoHost + ".stratio.com:" + ssoPort;
+        return ssoBase + "/gosec-sso/login?service=" + ssoBase +
+                    "/gosec-sso/oauth2.0/callbackAuthorize";
+    }
+
+    public String getManagementBaseurl() {
+        return PROTOCOL + managementHost + ".stratio.com:" + managementPort + "/api/scope";
     }
 
 
     public String sendGetRequest(String url, Boolean isCookieNeeded, String token, Boolean returnToken) throws
             Exception {
-        String callBackLocation = "";
-        String casprivacyAndTgc = getCookieWithCasPrivacy();
+        String casprivacyAndTgc = "CASPRIVACY=\"\"" + ";" + tgcCookie + ";" + jsessionIdCookie;
         Boolean isCasprivacyReady = !casprivacyAndTgc.contains(";;");
-
+        String callBackLocation;
         URL obj = new URL(url);
         HttpURLConnection response
                 = (HttpURLConnection) obj.openConnection();
@@ -149,28 +152,12 @@ public class GosecSSOUtils {
         return callBackLocation;
     }
 
+
     public String sendPOST(String url) throws Exception {
-        Map<String, String> params = new LinkedHashMap<>();
-        params.put("lt", lt);
-        params.put("_eventId", "submit");
-        params.put("execution", execution);
-        params.put("submit", "LOGIN");
-        params.put("username", userName);
-        params.put("password", passWord);
+        Map<String, String> params = getFieldParameters();
 
-
-        StringBuilder postData = new StringBuilder();
-        for (Map.Entry<String, String> param : params.entrySet()) {
-            if (postData.length() != 0) {
-                postData.append('&');
-            }
-            postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
-            postData.append('=');
-            postData.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
-        }
-        byte[] postDataBytes = postData.toString().getBytes("UTF-8");
+        byte[] postDataBytes = getPostDataBytes(params);
         int postDataLength = postDataBytes.length;
-
         URL obj = new URL(url);
         HttpURLConnection response = (HttpURLConnection) obj.openConnection();
         allowUnsafeSSL((HttpsURLConnection) response);
@@ -185,13 +172,10 @@ public class GosecSSOUtils {
         }
         response.getOutputStream().write(postDataBytes);
 
-        int responseCode4 = response.getResponseCode();
-
         String casprivacy = response.getHeaderField("Set-Cookie");
         tgcCookie = casprivacy.substring(0, casprivacy.indexOf(";"));
-        String location = response.getHeaderField("Location");
-        logger.info("POST response Code: " + responseCode4);
-        if (responseCode4 == HttpURLConnection.HTTP_OK) { // success
+        logger.info("POST response Code: " + response.getResponseCode());
+        if (response.getResponseCode() == HttpURLConnection.HTTP_OK) { // success
             BufferedReader in = new BufferedReader(new InputStreamReader(
                     response.getInputStream()));
             String inputLine;
@@ -206,7 +190,32 @@ public class GosecSSOUtils {
 
         }
 
-        return location;
+        return response.getHeaderField("Location");
+    }
+
+
+    public byte[] getPostDataBytes(Map<String, String> params) throws UnsupportedEncodingException {
+        StringBuilder postData = new StringBuilder();
+        for (Map.Entry<String, String> param : params.entrySet()) {
+            if (postData.length() != 0) {
+                postData.append('&');
+            }
+            postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
+            postData.append('=');
+            postData.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
+        }
+        return postData.toString().getBytes("UTF-8");
+    }
+
+    public Map<String, String> getFieldParameters() {
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("lt", lt);
+        params.put("_eventId", "submit");
+        params.put("execution", execution);
+        params.put("submit", "LOGIN");
+        params.put("username", userName);
+        params.put("password", passWord);
+        return params;
     }
 
 
