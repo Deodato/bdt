@@ -41,9 +41,9 @@ public class GosecSSOUtils {
 
     private String ssoPort = System.getProperty("SSO_PORT", "9005");
 
-    private String userName = System.getProperty("userName", "admin");
+    private String userName = System.getProperty("SSO_USER", "admin");
 
-    private String passWord = System.getProperty("passWord", "1234");
+    private String passWord = System.getProperty("SSO_PASSWORD", "1234");
 
     private String jsessionIdCookie;
 
@@ -70,7 +70,7 @@ public class GosecSSOUtils {
         ssoPort = System.getProperty("SSO_PORT", "9005");
         managementHost = System.getProperty("MANAGEMENT_HOST", "gosec3.node.paas.labs");
         managementPort = System.getProperty("MANAGEMENT_PORT", "8443");
-        userName = System.getProperty("userName", "admin");
+        userName = System.getProperty("SSO_USER", "admin");
         passWord = System.getProperty("passWord", "1234");
         jsessionIdCookie = "";
         lt = "";
@@ -78,10 +78,17 @@ public class GosecSSOUtils {
         tgcCookie = "";
     }
 
+    /**
+     * This method manage redirections flow to obtain Oauth2 Token
+     * find further information in this page https://stratio.atlassian
+     * .net/wiki/display/SG/SSO+-+Get+Oauth2+Token+with+Scala#SSO-GetOauth2TokenwithScala-Flow:
+     * @return generated token
+     * @throws Exception
+     */
     public String generateGosecToken() throws Exception {
-
-        logger.debug("1. Go to :" + getManagementBaseurl());
-        String response1_1 = sendGetRequest(getManagementBaseurl(), false, null, false);
+        String managementBaseUrl = getManagementBaseurl();
+        logger.debug("1. Go to :" + managementBaseUrl);
+        String response1_1 = sendGetRequest(managementBaseUrl, false, null, false);
         logger.debug("2. Redirect to : " + response1_1);
         String response1_2 = sendGetRequest(response1_1, true, null, false);
         logger.debug("3. Redirect to : " + response1_2 + "with" + jsessionIdCookie);
@@ -89,25 +96,42 @@ public class GosecSSOUtils {
 
         logger.debug("4. Go to: " + getSSOBaseurl() + " with JSESSIONID: " + jsessionIdCookie);
 
-        String location22 = sendPOST(getSSOBaseurl());
-        logger.debug("5. Redirect to : " + location22 + " with JSESSIONID [" + jsessionIdCookie + ",CASPRIVACY and TGC_Cookies" + getCookieWithCasPrivacy() + "]");
+        String callbackLocationWhitCredential = sendPOST(getSSOBaseurl());
+        logger.debug("5. Redirect to : " + callbackLocationWhitCredential + " with JSESSIONID [" + jsessionIdCookie + ",CASPRIVACY and TGC_Cookies" + getCookieWithCasPrivacy() + "]");
 
-        String location23 = sendGetRequest(location22, false, null, false);
-        logger.debug("6. Redirect to : " + location23 + " with JSESSIONID [" + jsessionIdCookie + ",CASPRIVACY and TGC_Cookies" + getCookieWithCasPrivacy() + "]");
+        String globalTokenCallback = sendGetRequest(callbackLocationWhitCredential, false, null, false);
+        logger.debug("6. Redirect to : " + globalTokenCallback + " with JSESSIONID [" + jsessionIdCookie + ",CASPRIVACY and TGC_Cookies" + getCookieWithCasPrivacy() + "]");
 
-        return tokenGenerated(sendGetRequest(location23, false, null, true));
+        return tokenGenerated(sendGetRequest(globalTokenCallback, false, null, true));
     }
 
+    /**
+     * This method construct sso base url
+     * @return ssoBaseUrl
+     */
     public String getSSOBaseurl() {
-        String ssoBase = PROTOCOL + ssoHost + ".stratio.com:" + ssoPort;
-        return ssoBase + "/gosec-sso/login?service=" + ssoBase +
+        String ssoBaseUrl = PROTOCOL + ssoHost + ".stratio.com:" + ssoPort;
+        return ssoBaseUrl + "/gosec-sso/login?service=" + ssoBaseUrl +
                     "/gosec-sso/oauth2.0/callbackAuthorize";
     }
 
+    /**
+     * This method construct management base url
+     * @return management base url
+     */
     public String getManagementBaseurl() {
         return PROTOCOL + managementHost + ".stratio.com:" + managementPort + "/api/scope";
     }
 
+    /**
+     * This method generate GET request using given redirections
+     * @param url
+     * @param isCookieNeeded
+     * @param token
+     * @param returnToken
+     * @return callbackLocation
+     * @throws Exception
+     */
 
     public String sendGetRequest(String url, Boolean isCookieNeeded, String token, Boolean returnToken) throws
             Exception {
@@ -115,8 +139,7 @@ public class GosecSSOUtils {
         Boolean isCasprivacyReady = !casprivacyAndTgc.contains(";;");
         String callBackLocation;
         URL obj = new URL(url);
-        HttpURLConnection response
-                = (HttpURLConnection) obj.openConnection();
+        HttpURLConnection response = (HttpURLConnection) obj.openConnection();
         allowUnsafeSSL((HttpsURLConnection) response);
         response.setInstanceFollowRedirects(false);
 
@@ -152,7 +175,12 @@ public class GosecSSOUtils {
         return callBackLocation;
     }
 
-
+    /**
+     * This method generate POST request using given redirections
+     * @param url
+     * @return
+     * @throws Exception
+     */
     public String sendPOST(String url) throws Exception {
         Map<String, String> params = getFieldParameters();
 
@@ -193,7 +221,12 @@ public class GosecSSOUtils {
         return response.getHeaderField("Location");
     }
 
-
+    /**
+     * This encode parameters string map
+     * @param params
+     * @return parameters in bytes
+     * @throws UnsupportedEncodingException
+     */
     public byte[] getPostDataBytes(Map<String, String> params) throws UnsupportedEncodingException {
         StringBuilder postData = new StringBuilder();
         for (Map.Entry<String, String> param : params.entrySet()) {
@@ -207,6 +240,10 @@ public class GosecSSOUtils {
         return postData.toString().getBytes("UTF-8");
     }
 
+    /**
+     *
+     * @return
+     */
     public Map<String, String> getFieldParameters() {
         Map<String, String> params = new LinkedHashMap<>();
         params.put("lt", lt);
