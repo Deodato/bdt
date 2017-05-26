@@ -79,7 +79,9 @@ public class GosecSSOUtilsIT {
     public void gosecUtilsGetFieldParametersTest() throws Exception {
         assertThat(gosecUtils.getFieldParameters().isEmpty()).isFalse();
         Map<String, String> params = new LinkedHashMap<>();
-        assertThat(gosecUtils.getPostDataBytes(params).length).isNotNegative();
-
+        assertThat(gosecUtils.getPostDataBytes(params).length).isEqualTo(0);
+        params.put("lt", "L");
+        params.put("_eventId", "submit");
+        assertThat(gosecUtils.getPostDataBytes(params).length).isEqualTo(20);
     }
 }

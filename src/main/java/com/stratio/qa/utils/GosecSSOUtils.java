@@ -159,20 +159,25 @@ public class GosecSSOUtils {
         }
 
         if (response.getResponseCode() == HttpURLConnection.HTTP_OK) { // success
-            BufferedReader in = new BufferedReader(new InputStreamReader(
-                    response.getInputStream()));
-            String inputLine;
-            StringBuffer responseBody = new StringBuffer();
-
-            while ((inputLine = in.readLine()) != null) {
-                responseBody.append(inputLine);
-            }
-            in.close();
+            StringBuffer responseBody = readResponseBody(response);
             lt = getHiddenInput(responseBody.toString(), "lt");
             execution = getHiddenInput(responseBody.toString(), "execution");
         }
         callBackLocation = returnToken ? cookieSession : callBackLocation;
         return callBackLocation;
+    }
+
+    public StringBuffer readResponseBody(HttpURLConnection response) throws IOException {
+        BufferedReader in = new BufferedReader(new InputStreamReader(
+                response.getInputStream()));
+        String inputLine;
+        StringBuffer responseBody = new StringBuffer();
+
+        while ((inputLine = in.readLine()) != null) {
+            responseBody.append(inputLine);
+        }
+        in.close();
+        return responseBody;
     }
 
     /**
@@ -204,15 +209,7 @@ public class GosecSSOUtils {
         tgcCookie = casprivacy.substring(0, casprivacy.indexOf(";"));
         logger.info("POST response Code: " + response.getResponseCode());
         if (response.getResponseCode() == HttpURLConnection.HTTP_OK) { // success
-            BufferedReader in = new BufferedReader(new InputStreamReader(
-                    response.getInputStream()));
-            String inputLine;
-            StringBuffer responseBody = new StringBuffer();
-
-            while ((inputLine = in.readLine()) != null) {
-                responseBody.append(inputLine);
-            }
-            in.close();
+            StringBuffer responseBody = readResponseBody(response);
             // print result
             logger.info(responseBody.toString());
 
