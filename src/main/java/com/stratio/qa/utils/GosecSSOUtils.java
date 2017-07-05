@@ -81,6 +81,8 @@ public class GosecSSOUtils {
     public HashMap<String, String> ssoTokenGenerator() throws
             Exception {
         String protocol = "https://";
+        HashMap<String, String> cookieToken = new HashMap<>();
+
         SSLContext sslContext = SSLContext.getInstance("SSL");
         // set up a TrustManager that trusts everything
         sslContext.init(null, ALL_TRUSTING_TRUST_MANAGER, new SecureRandom());
@@ -92,43 +94,49 @@ public class GosecSSOUtils {
                 .setDefaultRequestConfig(RequestConfig.custom()
                         .setCookieSpec(CookieSpecs.BEST_MATCH)
                         .setCircularRedirectsAllowed(true).build()).build();
-        org.apache.http.HttpResponse response = client.execute(httpGet, context);
-        logger.debug(response.getStatusLine().toString());
-        Document doc = Jsoup.parse(getStringFromIS(response.getEntity().getContent()));
-        Elements code = doc.select("[name=lt]");
-        String loginCode = code.attr("value");
-        String executionCode = doc.select("[name=execution]").attr("value");
-        for (Header oneHeader : response.getAllHeaders()) {
-            logger.debug(oneHeader.getName() + ":" + oneHeader.getValue());
-        }
+        try {
+            org.apache.http.HttpResponse firstResponse = client.execute(httpGet, context);
 
-        URI redirect = context.getRedirectLocations().get(context.getRedirectLocations().size() - 1);
+            logger.debug(firstResponse.getStatusLine().toString());
+            Document doc = Jsoup.parse(getStringFromIS(firstResponse.getEntity().getContent()));
+            Elements code = doc.select("[name=lt]");
+            String loginCode = code.attr("value");
+            String executionCode = doc.select("[name=execution]").attr("value");
+            for (Header oneHeader : firstResponse.getAllHeaders()) {
+                logger.debug(oneHeader.getName() + ":" + oneHeader.getValue());
+            }
 
-        List<NameValuePair> params = new ArrayList<>();
-        params.add(new BasicNameValuePair("_eventId", "submit"));
-        params.add(new BasicNameValuePair("submit", "LOGIN"));
-        params.add(new BasicNameValuePair("username", this.userName));
-        params.add(new BasicNameValuePair("password", passWord));
-        params.add(new BasicNameValuePair("lt", loginCode));
-        params.add(new BasicNameValuePair("execution", executionCode));
-        HttpPost httpPost = new HttpPost(redirect);
-        httpPost.setEntity(new UrlEncodedFormEntity(params));
-        org.apache.http.HttpResponse secondResponse = client.execute(httpPost, context);
+            URI redirect = context.getRedirectLocations().get(context.getRedirectLocations().size() - 1);
 
-        for (Header oneHeader : secondResponse.getAllHeaders()) {
-            logger.debug(oneHeader.getName() + ":" + oneHeader.getValue());
-        }
+            List<NameValuePair> params = new ArrayList<>();
+            params.add(new BasicNameValuePair("_eventId", "submit"));
+            params.add(new BasicNameValuePair("submit", "LOGIN"));
+            params.add(new BasicNameValuePair("username", this.userName));
+            params.add(new BasicNameValuePair("password", passWord));
+            params.add(new BasicNameValuePair("lt", loginCode));
+            params.add(new BasicNameValuePair("execution", executionCode));
+            HttpPost httpPost = new HttpPost(redirect);
+            httpPost.setEntity(new UrlEncodedFormEntity(params));
+            org.apache.http.HttpResponse secondResponse = client.execute(httpPost, context);
 
-        HttpGet managementGet = new HttpGet(protocol + ssoHost + managementHost);
-        client.execute(managementGet, context);
+            for (Header oneHeader : secondResponse.getAllHeaders()) {
+                logger.debug(oneHeader.getName() + ":" + oneHeader.getValue());
+            }
 
-        HashMap<String, String> cookieToken = new HashMap<>();
-        for (Cookie oneCookie : context.getCookieStore().getCookies()) {
-            logger.info(oneCookie.getName() + ":" + oneCookie.getValue());
-            cookieToken.put(oneCookie.getName(), oneCookie.getValue());
+            HttpGet managementGet = new HttpGet(protocol + ssoHost + managementHost);
+            client.execute(managementGet, context);
+
+            for (Cookie oneCookie : context.getCookieStore().getCookies()) {
+                logger.info(oneCookie.getName() + ":" + oneCookie.getValue());
+                cookieToken.put(oneCookie.getName(), oneCookie.getValue());
+            }
+
+        } catch (Exception e) {
+            e.getStackTrace();
         }
         return cookieToken;
     }
+
 
     private String getStringFromIS(InputStream stream) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {

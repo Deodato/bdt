@@ -26,17 +26,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class GosecSSOUtilsIT {
     private final Logger logger = LoggerFactory
             .getLogger(GosecSSOUtilsIT.class);
-    private static GosecSSOUtils getGosecUtils = new GosecSSOUtils("newcore.labs.stratio.com",
-            "admin", "1234");
+    private static GosecSSOUtils gosecSsoUtils = new GosecSSOUtils("www.google.com",
+            "anyUser", "anyPassWord");
 
     @Test
     public void gosecUtilsConstructorTest() throws Exception {
-        assertThat(getGosecUtils.toString().isEmpty()).isFalse();
+        assertThat(gosecSsoUtils.toString().isEmpty()).isFalse();
     }
 
     @Test
     public void gosecUtilsTokenGeneratorTest() throws Exception {
-        assertThat(getGosecUtils.ssoTokenGenerator().get("SSOID").toString().equals("s1")).isTrue();
+        assertThat(gosecSsoUtils.ssoTokenGenerator().size()).isEqualTo(0);
     }
 
 }
