@@ -20,26 +20,14 @@ import org.testng.annotations.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 
 public class GosecSSOUtilsIT {
     private final Logger logger = LoggerFactory
             .getLogger(GosecSSOUtilsIT.class);
-    private static GosecSSOUtils gosecUtils = new GosecSSOUtils();
-    private static GosecSSOUtils getGosecUtils = new GosecSSOUtils("gosec2.node.paas.labs", "gosec3.node.paas.labs",
-            "admin", "stratio");
-    private String url = "https://gosec2.node.paas.labs.stratio" +
-            ".com:9005/gosec-sso/oauth2.0/callbackAuthorize?ticket=ST-92-bi0RIgCbJzI4L7W9BItw-gosec2.node.paas.labs.stratio.com";
-    private String responseBody = "2Foauth2.0%2FcallbackAuthorize\" method=\"post\">            <div class=\"login__errors\">    " +
-            "                                  <input type=\"hidden\" name=\"lt\" value=\"LT-66-k4xWul35hkbZjMdA9BcXUmlMlQb02w-gosec2.node.paas.labs.stratio.com\" />                     <input type=\"hidden\" name=\"execution\" value=\"4c21bae8-8eaa-40e7-b9f8-c7e457d028db_AAAAIgAAABCiR+F4x2lS9YCbc8YK2/aFAAAABmFlczEyOJwKG";
-    private String userToken = "0e65edb6-d331-4fcf-8880-fadef0234c1d";
-
+    private static GosecSSOUtils getGosecUtils = new GosecSSOUtils("newcore.labs.stratio.com",
+            "admin", "1234");
 
     @Test
     public void gosecUtilsConstructorTest() throws Exception {
@@ -47,41 +35,8 @@ public class GosecSSOUtilsIT {
     }
 
     @Test
-    public void gosecUtilsManagementBaseUrlTest() throws Exception {
-        assertThat(getGosecUtils.getManagementBaseurl().equals("https://gosec3.node.paas.labs.stratio.com:8443/api/scope")).isTrue();
+    public void gosecUtilsTokenGeneratorTest() throws Exception {
+        assertThat(getGosecUtils.ssoTokenGenerator().get("SSOID").toString().equals("s1")).isTrue();
     }
 
-    @Test
-    public void gosecUtilsSSOBaseUrlTest() throws Exception {
-        assertThat(getGosecUtils.getSSOBaseurl().equals("https://gosec2.node.paas.labs.stratio.com:9005/gosec-sso/login?service=https://gosec2.node.paas.labs.stratio.com:9005/gosec-sso/oauth2.0/callbackAuthorize")).isTrue();
-    }
-
-    @Test
-    public void gosecUtilsGetHiddenInputTest() throws Exception {
-        assertThat(gosecUtils.getHiddenInput(responseBody, "lt").equals
-                ("LT-66-k4xWul35hkbZjMdA9BcXUmlMlQb02w-gosec2.node.paas.labs.stratio.com")).isTrue();
-        assertThat(gosecUtils.getHiddenInput(responseBody, "execution").equals("4c21bae8-8eaa-40e7-b9f8-c7e457d028db_AAAAIgAAABCiR+F4x2lS9YCbc8YK2/aFAAAABmFlczEyOJwKG")).isTrue();
-
-    }
-
-    @Test
-    public void gosecUtilsTokenGeneratedTest() throws Exception {
-        String tokens = gosecUtils.tokenGenerated("user=0e65edb6-d331-4fcf-8880-fadef0234c1d; Max-Age=7200; Path=/");
-        assertThat(tokens.equals(userToken));
-    }
-
-    @Test
-    public void gosecUtilsGetCookiesWithCasprivacyTest() throws Exception {
-        assertThat(gosecUtils.getCookieWithCasPrivacy().contains("CASPRIVACY=\"\";;")).isTrue();
-    }
-
-    @Test
-    public void gosecUtilsGetFieldParametersTest() throws Exception {
-        assertThat(gosecUtils.getFieldParameters().isEmpty()).isFalse();
-        Map<String, String> params = new LinkedHashMap<>();
-        assertThat(gosecUtils.getPostDataBytes(params).length).isEqualTo(0);
-        params.put("lt", "L");
-        params.put("_eventId", "submit");
-        assertThat(gosecUtils.getPostDataBytes(params).length).isEqualTo(20);
-    }
 }

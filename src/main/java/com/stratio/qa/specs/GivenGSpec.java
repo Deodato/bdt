@@ -576,20 +576,28 @@ public class GivenGSpec extends BaseGSpec {
     /**
      * Generate token to authenticate in gosec SSO
      * @param ssoHost
-     * @param mngtHost
      * @param userName
      * @param passWord
      * @throws Exception
      */
-    @Given("^I log in to sso '(.+?)' to management '(.+?)'  with user '(.+?)' and password '(.+?)'$")
-    public void setGoSecSSOCookie(String ssoHost, String mngtHost, String userName, String passWord) throws Exception {
-        String gosecToken = new GosecSSOUtils(ssoHost, mngtHost, userName, passWord).generateGosecToken();
+    @Given("^I set sso token using host '(.+?)' with user '(.+?)' and password '(.+?)'$")
+    public void setGoSecSSOCookie(String ssoHost, String userName, String passWord) throws Exception {
+        HashMap<String, String> ssoCookies = new GosecSSOUtils(ssoHost, userName, passWord).ssoTokenGenerator();
+        String[] tokenList = {"user", "dcos-acs-auth-cookie"};
+        List<Cookie> cookiesAtributes = getCookieList(ssoCookies, tokenList);
 
-        Cookie cookie = new Cookie("user", gosecToken, false, null,
-                null, 99999, false, false);
-        List<Cookie> cookieList = new ArrayList<Cookie>();
-        cookieList.add(cookie);
-        commonspec.setCookies(cookieList);
+        commonspec.setCookies(cookiesAtributes);
+    }
+
+    public List<Cookie> getCookieList(HashMap<String, String> ssoCookies, String[] tokenList) {
+        List<Cookie> cookiesAtributes = new ArrayList<>();
+
+        for (String tokenKie : tokenList) {
+            cookiesAtributes.add(new Cookie(tokenKie, ssoCookies.get(tokenKie),
+                    false, null,
+                    null, 999999, false, false));
+        }
+        return cookiesAtributes;
     }
 
 
