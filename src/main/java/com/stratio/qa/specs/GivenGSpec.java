@@ -20,6 +20,7 @@ import com.auth0.jwt.JWTSigner;
 import com.ning.http.client.Response;
 import com.ning.http.client.cookie.Cookie;
 import com.stratio.qa.exceptions.DBException;
+import com.stratio.qa.utils.GosecSSOUtils;
 import com.stratio.qa.utils.RemoteSSHConnection;
 import com.stratio.qa.utils.ThreadProperty;
 import cucumber.api.DataTable;
@@ -571,6 +572,26 @@ public class GivenGSpec extends BaseGSpec {
         cookieList.add(cookie);
         commonspec.setCookies(cookieList);
     }
+
+    /**
+     * Generate token to authenticate in gosec SSO
+     * @param ssoHost
+     * @param mngtHost
+     * @param userName
+     * @param passWord
+     * @throws Exception
+     */
+    @Given("^I log in to sso '(.+?)' to mngt '(.+?)'  with user '(.+?)' and password '(.+?)'$")
+    public void setGoSecSSOCookie(String ssoHost, String mngtHost, String userName, String passWord) throws Exception {
+        String gosecToken = new GosecSSOUtils(ssoHost, mngtHost, userName, passWord).generateGosecToken();
+
+        Cookie cookie = new Cookie("user", gosecToken, false, null,
+                null, 99999, false, false);
+        List<Cookie> cookieList = new ArrayList<Cookie>();
+        cookieList.add(cookie);
+        commonspec.setCookies(cookieList);
+    }
+
 
     /*
      * Copies file/s from remote system into local system

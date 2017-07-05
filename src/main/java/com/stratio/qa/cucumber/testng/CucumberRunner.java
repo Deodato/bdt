@@ -111,6 +111,8 @@ public class CucumberRunner {
         uniqueGlue.add("classpath:com/stratio/universe/testsAT/specs");
         uniqueGlue.add("classpath:com/stratio/paas/confluentkafkaAT/specs");
         uniqueGlue.add("classpath:com/stratio/paas/dcoselasticserviceAT/specs");
+        uniqueGlue.add("classpath:com/stratio/gosecmanagement/testsAT/specs");
+
         runtimeOptions.getGlue().clear();
         runtimeOptions.getGlue().addAll(uniqueGlue);
 
