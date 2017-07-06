@@ -31,11 +31,11 @@ public class GosecSSOUtilsIT {
 
     @Test
     public void gosecUtilsConstructorTest() throws Exception {
-        assertThat(gosecSsoUtils.toString().isEmpty()).isFalse();
+        assertThat(gosecSsoUtils.userName.equals("anyUser")).isTrue();
     }
 
     @Test
-    public void gosecUtilsTokenGeneratorTest() throws Exception {
+    public void gosecUtilsFakeTokenGeneratorTest() throws Exception {
         assertThat(gosecSsoUtils.ssoTokenGenerator().size()).isEqualTo(0);
     }
 

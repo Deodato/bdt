@@ -26,7 +26,6 @@ import javax.net.ssl.*;
 
 import org.apache.http.*;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
@@ -59,24 +58,11 @@ public class GosecSSOUtils {
         this.passWord = passWord;
     }
 
-    private static final TrustManager[] ALL_TRUSTING_TRUST_MANAGER = new TrustManager[]{
-        new X509TrustManager() {
-            public X509Certificate[] getAcceptedIssuers() {
-                    return null;
-                }
-
-            public void checkClientTrusted(X509Certificate[] certs, String authType) {
-            }
-
-            public void checkServerTrusted(X509Certificate[] certs, String authType) {
-            }
-        }
-    };
 
     /**
      * This method provide dcos and sso token to be used to generate client cookie
-     * @return cookieToken
-     * @throws Exception
+     * @return cookieToken list of token generated
+     * @throws Exception exception
      */
     public HashMap<String, String> ssoTokenGenerator() throws
             Exception {
@@ -87,12 +73,11 @@ public class GosecSSOUtils {
         // set up a TrustManager that trusts everything
         sslContext.init(null, ALL_TRUSTING_TRUST_MANAGER, new SecureRandom());
         HttpClientContext context = HttpClientContext.create();
-        HttpGet httpGet = new HttpGet(protocol + this.ssoHost + "/login");
+        HttpGet httpGet = new HttpGet(protocol + ssoHost + "/login");
         HttpClient client = HttpClientBuilder.create()
                 .setSslcontext(sslContext)
                 .setRedirectStrategy(new LaxRedirectStrategy())
                 .setDefaultRequestConfig(RequestConfig.custom()
-                        .setCookieSpec(CookieSpecs.BEST_MATCH)
                         .setCircularRedirectsAllowed(true).build()).build();
         try {
             org.apache.http.HttpResponse firstResponse = client.execute(httpGet, context);
@@ -111,7 +96,7 @@ public class GosecSSOUtils {
             List<NameValuePair> params = new ArrayList<>();
             params.add(new BasicNameValuePair("_eventId", "submit"));
             params.add(new BasicNameValuePair("submit", "LOGIN"));
-            params.add(new BasicNameValuePair("username", this.userName));
+            params.add(new BasicNameValuePair("username", userName));
             params.add(new BasicNameValuePair("password", passWord));
             params.add(new BasicNameValuePair("lt", loginCode));
             params.add(new BasicNameValuePair("execution", executionCode));
@@ -127,7 +112,7 @@ public class GosecSSOUtils {
             client.execute(managementGet, context);
 
             for (Cookie oneCookie : context.getCookieStore().getCookies()) {
-                logger.info(oneCookie.getName() + ":" + oneCookie.getValue());
+                logger.debug(oneCookie.getName() + ":" + oneCookie.getValue());
                 cookieToken.put(oneCookie.getName(), oneCookie.getValue());
             }
 
@@ -137,6 +122,19 @@ public class GosecSSOUtils {
         return cookieToken;
     }
 
+    private static final TrustManager[] ALL_TRUSTING_TRUST_MANAGER = new TrustManager[]{
+        new X509TrustManager() {
+            public X509Certificate[] getAcceptedIssuers() {
+                return null;
+            }
+
+            public void checkClientTrusted(X509Certificate[] certs, String authType) {
+            }
+
+            public void checkServerTrusted(X509Certificate[] certs, String authType) {
+            }
+        }
+    };
 
     private String getStringFromIS(InputStream stream) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
