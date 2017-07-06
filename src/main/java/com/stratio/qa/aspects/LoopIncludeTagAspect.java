@@ -44,8 +44,9 @@ public class LoopIncludeTagAspect {
     }
 
     /**
-     * @param resource
-     * @throws Throwable
+     * @param resource resource containing feature
+     * @return String parsed feature after aspect applied
+     * @throws Throwable exception
      */
     @Around(value = "featureBuilderRead(resource)")
     public String aroundAddLoopTagPointcutScenario(Resource resource) throws Throwable {
@@ -59,7 +60,7 @@ public class LoopIncludeTagAspect {
 
         for (int s = 0; s < lines.size(); s++) {
             String[] elems;
-            if (lines.get(s).matches("\\s*@loop.*")) {
+            if (lines.get(s).toUpperCase().matches("\\s*@LOOP.*")) {
                 listParams = lines.get(s).substring((lines.get(s).lastIndexOf("(") + 1), (lines.get(s).length()) - 1).split(",")[0];
                 try {
                     elems = System.getProperty(listParams).split(",");
@@ -83,6 +84,24 @@ public class LoopIncludeTagAspect {
                 lines.add(s, "Examples:");
                 exampleLines(paramReplace, elems, lines,  s + 1);
                 s = s + elems.length;
+            }
+            if (lines.get(s).toUpperCase().matches("\\s*@BACKGROUND.*")) {
+                listParams = lines.get(s).substring((lines.get(s).lastIndexOf("(") + 1), (lines.get(s).length()) - 1);
+                if (System.getProperty(listParams) != null) {
+                    lines.remove(s);
+                    while (!lines.get(s).toUpperCase().contains("/BACKGROUND")) {
+                        s++;
+                    }
+                    lines.remove(s--);
+                } else {
+                    lines.remove(s);
+                    while (!lines.get(s).toUpperCase().contains("SCENARIO") && !lines.get(s).matches(".*@[^\\{].*") && !lines.get(s).toUpperCase().contains("/BACKGROUND")) {
+                        lines.remove(s);
+                    }
+                    if (lines.get(s).toUpperCase().contains("@/BACKGROUND")) {
+                        lines.remove(s--);
+                    }
+                }
             }
         }
         parseLines(lines, path);
@@ -155,6 +174,7 @@ public class LoopIncludeTagAspect {
 
     /**
      * @param s A string with the tag line that will be filtered and trimmed to get exactly the name of the feature
+     * @return String Feature name
      */
     public String getFeatureName(String s) {
 

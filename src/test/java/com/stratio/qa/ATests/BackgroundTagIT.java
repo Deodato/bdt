@@ -13,28 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.stratio.qa.ATests;
 
-package com.stratio.qa.assertions;
 
-import org.assertj.core.api.iterable.Extractor;
-import org.openqa.selenium.WebElement;
+import com.stratio.qa.cucumber.testng.CucumberRunner;
+import com.stratio.qa.utils.BaseGTest;
+import cucumber.api.CucumberOptions;
+import org.testng.annotations.Test;
 
-public final class SeleniumExtractor implements Extractor<WebElement, String> {
-
-    private SeleniumExtractor() {
-    }
-
-    /**
-     * Get selenium extractor.
-     *
-     * @return {@code Extractor<WebElement, String>}
-     */
-    public static Extractor<WebElement, String> linkText() {
-        return new SeleniumExtractor();
-    }
-
-    @Override
-    public String extract(WebElement input) {
-        return input.getText();
+@CucumberOptions(features = {"src/test/resources/features/backgroundTag1.feature",
+                             "src/test/resources/features/backgroundTag2.feature",
+                             "src/test/resources/features/backgroundTag3.feature"})
+public class BackgroundTagIT extends BaseGTest {
+    @Test
+    public void backgroundTagIt() throws Exception {
+        new CucumberRunner(this.getClass()).runCukes();
     }
 }
