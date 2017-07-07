@@ -24,14 +24,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 
 public class GosecSSOUtilsIT {
-    private final Logger logger = LoggerFactory
-            .getLogger(GosecSSOUtilsIT.class);
+    private final Logger logger = LoggerFactory.getLogger(GosecSSOUtilsIT.class);
     private static GosecSSOUtils gosecSsoUtils = new GosecSSOUtils("www.google.com",
             "anyUser", "anyPassWord");
 
     @Test
     public void gosecUtilsConstructorTest() throws Exception {
-        assertThat(gosecSsoUtils.userName.equals("anyUser")).isTrue();
+        assertThat(gosecSsoUtils.ssoHost).isEqualTo("www.google.com");
+        assertThat(gosecSsoUtils.userName).isEqualTo("anyUser");
+        assertThat(gosecSsoUtils.passWord).isEqualTo("anyPassWord");
     }
 
     @Test

@@ -577,7 +577,6 @@ public class GivenGSpec extends BaseGSpec {
     }
 
     /**
-    /**
      * Generate token to authenticate in gosec SSO
      * @param ssoHost current sso host
      * @param userName username

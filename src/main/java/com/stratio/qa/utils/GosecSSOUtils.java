@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import javax.net.ssl.*;
 
 import org.apache.http.*;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -64,8 +65,7 @@ public class GosecSSOUtils {
      * @return cookieToken list of token generated
      * @throws Exception exception
      */
-    public HashMap<String, String> ssoTokenGenerator() throws
-            Exception {
+    public HashMap<String, String> ssoTokenGenerator() throws Exception {
         String protocol = "https://";
         HashMap<String, String> cookieToken = new HashMap<>();
 
@@ -80,7 +80,7 @@ public class GosecSSOUtils {
                 .setDefaultRequestConfig(RequestConfig.custom()
                         .setCircularRedirectsAllowed(true).build()).build();
         try {
-            org.apache.http.HttpResponse firstResponse = client.execute(httpGet, context);
+            HttpResponse firstResponse = client.execute(httpGet, context);
 
             logger.debug(firstResponse.getStatusLine().toString());
             Document doc = Jsoup.parse(getStringFromIS(firstResponse.getEntity().getContent()));
@@ -102,7 +102,7 @@ public class GosecSSOUtils {
             params.add(new BasicNameValuePair("execution", executionCode));
             HttpPost httpPost = new HttpPost(redirect);
             httpPost.setEntity(new UrlEncodedFormEntity(params));
-            org.apache.http.HttpResponse secondResponse = client.execute(httpPost, context);
+            HttpResponse secondResponse = client.execute(httpPost, context);
 
             for (Header oneHeader : secondResponse.getAllHeaders()) {
                 logger.debug(oneHeader.getName() + ":" + oneHeader.getValue());
@@ -141,7 +141,7 @@ public class GosecSSOUtils {
             return reader.lines().collect(Collectors.joining("\n"));
         } catch (IOException e) {
             e.printStackTrace();
-            return null;
+            return "";
         }
 
     }
