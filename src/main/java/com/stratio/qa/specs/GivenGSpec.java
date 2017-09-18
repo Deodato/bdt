@@ -27,6 +27,8 @@ import cucumber.api.DataTable;
 import cucumber.api.java.en.Given;
 import org.assertj.core.api.Assertions;
 import org.openqa.selenium.WebElement;
+import org.apache.zookeeper.KeeperException;
+
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
@@ -717,6 +719,48 @@ public class GivenGSpec extends BaseGSpec {
         commonspec.getZookeeperSecClient().connectZk();
     }
 
+    /**
+     * This method manage Znode operations and catch authentication exceptions
+     *
+     * @param action
+     * @param nodePath
+     * @param foo
+     * @param document
+     * @throws Exception
+     */
+    @Given("^I request to '(.+?)' Znone '(.+?)'( with value '(.+?)')?$")
+    public void requestZkNodeActions(String action, String nodePath, String foo, String document) throws Exception {
+        String data = nodePath;
+        document = document == null ? "defauldData" : document;
+        String actions = action.toUpperCase().trim();
+        try {
+            switch (actions) {
+                case "READ":
+                    commonspec.getZookeeperSecClient().zRead(nodePath);
+                    break;
+                case "CREATE":
+                    if (commonspec.getZookeeperSecClient().exists(nodePath)) {
+                        commonspec.getZookeeperSecClient().delete(nodePath);
+                    }
+                    commonspec.getZookeeperSecClient().zCreate(nodePath, false);
+                    data += " Created";
+                    break;
+                case "WRITE":
+                    data = commonspec.getZookeeperSecClient().zWrite(nodePath, document);
+                    break;
+                case "DELETE":
+                    commonspec.getZookeeperSecClient().delete(nodePath);
+                    data += " Deleted";
+                    break;
+                default:
+                    throw new Exception("Operation " + actions + " not valid");
+            }
+        } catch (KeeperException e) {
+            data = e.getMessage();
+        }
+        commonspec.getZookeeperSecClient().setAuthorizationMessage(data);
+
+    }
 
     /**
      * Disconnect from zookeeper.

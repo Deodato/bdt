@@ -21,6 +21,7 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,9 @@ public class ZookeeperSecUtils {
     private CuratorFramework curatorZkClient;
 
     private Stat st;
+
+    private String authorizationMessage;
+
 
     public ZookeeperSecUtils() {
         this.zk_hosts = System.getProperty("ZOOKEEPER_HOSTS", DEFAULT_ZK_HOSTS);
@@ -107,6 +111,8 @@ public class ZookeeperSecUtils {
         } else {
             this.curatorZkClient.create().withMode(CreateMode.PERSISTENT).forPath(path, bDoc);
         }
+        logger.debug(path + " Created");
+
     }
 
     public void zCreate(String path, boolean isEphemeral) throws Exception {
@@ -117,6 +123,20 @@ public class ZookeeperSecUtils {
         } else {
             this.curatorZkClient.create().withMode(CreateMode.PERSISTENT).forPath(path, bDoc);
         }
+        logger.debug(path + " Created");
+    }
+
+    public String zWrite(String path, String document) throws Exception {
+        byte[] bDoc = document.getBytes(StandardCharsets.UTF_8);
+        String data = path + " updated with " + document;
+        try {
+            this.curatorZkClient.setData().forPath(path, bDoc);
+        } catch (KeeperException e) {
+            data = e.getMessage();
+        }
+        setAuthorizationMessage(data);
+        logger.debug(data);
+        return data;
     }
 
     public Boolean isConnected() {
@@ -129,6 +149,8 @@ public class ZookeeperSecUtils {
 
     public void delete(String path) throws Exception {
         this.curatorZkClient.delete().forPath(path);
+        logger.debug(path + " Deleted");
+
     }
 
     public void disconnect() throws InterruptedException {
@@ -138,5 +160,14 @@ public class ZookeeperSecUtils {
     public void setZookeeperSecConnection(String hosts, int timeout) {
         this.zk_hosts = hosts;
         this.timeout = timeout;
+    }
+
+    public void setAuthorizationMessage(String authorizationMessage) {
+        this.authorizationMessage = authorizationMessage;
+    }
+
+    public String getAuthorizationMessage() {
+        return authorizationMessage;
+
     }
 }

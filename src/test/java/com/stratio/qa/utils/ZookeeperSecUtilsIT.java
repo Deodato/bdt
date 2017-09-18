@@ -73,6 +73,26 @@ public class ZookeeperSecUtilsIT extends BaseGSpec {
         assertThat(zkUtils.zRead(znodePath)).isEqualToIgnoringCase(znodeContent);
         zkUtils.delete(znodePath);
 
+        //Verify write contents in Znode
+        String znodeContents = "hello zk";
+        znodePath = "/mypath8";
+        if (!zkUtils.exists(znodePath)) {
+            zkUtils.zCreate(znodePath,false);
+        }
+        zkUtils.zWrite(znodePath, znodeContents);
+        assertThat(zkUtils.zRead(znodePath)).isEqualToIgnoringCase(znodeContents);
+        zkUtils.delete(znodePath);
+
+        //Verify no existed Znode to write in
+        znodePath = "/mypath9";
+        if (zkUtils.exists(znodePath)) {
+            zkUtils.delete(znodePath);
+        }
+        zkUtils.zWrite(znodePath, znodeContents);
+        assertThat(zkUtils.getAuthorizationMessage()).isEqualToIgnoringCase("KeeperErrorCode = NoNode for " +
+                znodePath);
+
+
         // Disconnect
         zkUtils.disconnect();
     }

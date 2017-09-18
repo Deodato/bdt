@@ -788,5 +788,27 @@ public class ThenGSpec extends BaseGSpec {
         ThreadProperty.set(envVar, text);
     }
 
+    /**
+     * Check the authorization message
+     * @param text
+     * @throws Exception
+     */
+    @Then("^the znode output message contains '(.+?)'$")
+    public void checkZnodeOutputMessage(String text) throws Exception {
+        Assertions.assertThat(this.commonspec.getZookeeperSecClient().getAuthorizationMessage()).containsPattern(text);
+
+    }
+
+    /**
+     * Check the authorization message
+     * @param text
+     * @throws Exception
+     */
+    @Then("^the znode output message does not contain '(.+?)'$")
+    public void checkNoZnodeOutputMessage(String text) throws Exception {
+        Assertions.assertThat(this.commonspec.getZookeeperSecClient().getAuthorizationMessage()).doesNotContain(text);
+
+    }
+
 }
 
